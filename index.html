@@ -520,6 +520,65 @@
   .machine-row.tappable:active{background:var(--surface-2);}
 
   /* ---------- Attachments ---------- */
+  .bench-head{
+    margin:18px 2px 8px; padding-top:6px;
+    border-top:1px solid var(--line, rgba(128,128,128,.18));
+    color:var(--chalk); font-size:15px; font-weight:800;
+    letter-spacing:.02em;
+  }
+  .bench-empty{
+    color:var(--muted); font-size:13px;
+    padding:2px 2px 10px; line-height:1.4;
+  }
+  .bench-photo-hint{
+    color:var(--muted); font-size:12px;
+    margin-top:12px; line-height:1.45;
+  }
+  .photo-pick-wrap{ margin-bottom:14px; }
+  .dbunit-row{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:12px 14px; margin-bottom:14px;
+    background:var(--surface-2, rgba(128,128,128,.08));
+    border:1px solid var(--line, rgba(128,128,128,.18));
+    border-radius:14px;
+  }
+  .dbunit-text{color:var(--chalk); font-size:14px; font-weight:600;}
+  .dbunit-seg{
+    display:flex; gap:3px; padding:3px;
+    background:var(--surface, rgba(128,128,128,.12));
+    border:1px solid var(--line, rgba(128,128,128,.18));
+    border-radius:10px;
+  }
+  .dbunit-btn{
+    border:none; cursor:pointer; background:transparent;
+    color:var(--muted); font-size:13px; font-weight:800;
+    padding:6px 14px; border-radius:8px; transition:background .15s, color .15s;
+  }
+  .dbunit-btn.on{background:var(--accent); color:var(--on-accent, #fff);}
+  .picker-toggle{
+    display:flex; gap:4px; margin:2px 0 14px;
+    background:var(--surface-2, rgba(128,128,128,.12));
+    border:1px solid var(--line, rgba(128,128,128,.18));
+    border-radius:12px; padding:4px;
+    position:sticky; top:0; z-index:2;
+  }
+  .picker-toggle-btn{
+    flex:1; padding:10px 8px; border:none; cursor:pointer;
+    background:transparent; color:var(--muted);
+    font-size:14px; font-weight:700; letter-spacing:.03em;
+    border-radius:9px; transition:background .15s, color .15s;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+  }
+  .picker-toggle-btn.on{
+    background:var(--surface, #fff); color:var(--chalk);
+    box-shadow:0 1px 3px rgba(0,0,0,.12);
+  }
+  .picker-toggle-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px;
+    background:var(--accent); color:var(--on-accent, #fff);
+    border-radius:999px; font-size:11px; font-weight:800;
+  }
   .attach-label{
     padding:2px 14px 6px;
     color:var(--muted);
@@ -708,6 +767,29 @@
     box-shadow:0 1px 3px rgba(0,0,0,.3);
   }
   .uni-switch.on .uni-knob{transform:translateX(20px);}
+  .bench-toggle{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    width:100%; margin-top:18px; padding:14px;
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:14px; text-align:left; cursor:pointer;
+  }
+  .bench-toggle-text{display:flex; flex-direction:column; gap:3px;}
+  .bench-toggle-title{color:var(--chalk); font-size:15px; font-weight:700;}
+  .bench-toggle-sub{color:var(--muted); font-size:12px;}
+  .bench-toggle-switch{
+    width:46px; height:26px; border-radius:999px;
+    background:var(--surface); border:1px solid var(--line);
+    position:relative; flex:0 0 auto;
+    transition:background .18s, border-color .18s;
+  }
+  .bench-toggle-switch::after{
+    content:""; position:absolute; top:2px; left:2px;
+    width:20px; height:20px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3);
+    transition:transform .18s;
+  }
+  .bench-toggle.on .bench-toggle-switch{background:var(--accent); border-color:var(--accent);}
+  .bench-toggle.on .bench-toggle-switch::after{transform:translateX(20px);}
   .arm-label{
     color:var(--muted);
     font-size:11px; font-weight:600;
@@ -1489,6 +1571,12 @@
       </svg>
       Gyms
     </button>
+    <button id="tab-exercises" onclick="switchTab('exercises')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6.5 7.5v9M3 9.5v5M17.5 7.5v9M21 9.5v5M6.5 12h11"/>
+      </svg>
+      Lifts
+    </button>
     <button id="tab-history" onclick="switchTab('history')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="8.5"/>
@@ -1589,6 +1677,88 @@
       </div>
       <div class="sheet-foot">
         <button class="btn-primary" onclick="saveGym()">Save gym</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add exercise to library sheet -->
+  <div class="overlay" id="addexlib-overlay" onclick="if(event.target===this) closeAddExerciseLib()">
+    <div class="sheet" role="dialog" aria-label="Add exercise">
+      <div class="sheet-head">
+        <h2>Add exercise</h2>
+        <button class="sheet-close" onclick="closeAddExerciseLib()" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body">
+        <label class="settings-label" for="addexlib-name">Exercise name</label>
+        <input id="addexlib-name" class="stack-input" maxlength="48" placeholder="e.g. Barbell Bench Press"
+          onkeydown="if(event.key==='Enter') saveExerciseLib()">
+        <div class="settings-label" style="margin-top:16px">Muscle group</div>
+        <div class="gp-row" id="exlib-groups"></div>
+        <div class="settings-label" style="margin-top:16px">Equipment</div>
+        <div class="gp-row" id="exlib-equip"></div>
+        <button class="bench-toggle" id="exlib-bench" onclick="toggleExLibBench()">
+          <span class="bench-toggle-text">
+            <span class="bench-toggle-title">Uses a bench</span>
+            <span class="bench-toggle-sub">Ask which bench when adding to a workout</span>
+          </span>
+          <span class="bench-toggle-switch" id="exlib-bench-switch"></span>
+        </button>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn-primary" onclick="saveExerciseLib()">Save exercise</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/edit bench sheet -->
+  <div class="overlay" id="bench-overlay" onclick="if(event.target===this) closeBenchSheet()">
+    <div class="sheet" role="dialog" aria-label="Bench">
+      <div class="sheet-head">
+        <h2 id="bench-sheet-title">Add bench</h2>
+        <button class="sheet-close" onclick="closeBenchSheet()" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div class="photo-pick-wrap">
+          <button class="photo-pick" onclick="document.getElementById('bench-photo').click()">
+            <span id="bench-photo-inner">📷<br>Add photo</span>
+          </button>
+          <input type="file" id="bench-photo" accept="image/*" style="display:none" onchange="benchPhotoChosen(this)">
+        </div>
+        <label class="settings-label" for="bench-name">Label</label>
+        <input id="bench-name" class="stack-input" maxlength="32" placeholder="e.g. Bench 1"
+          onkeydown="if(event.key==='Enter') saveBench()">
+        <div class="bench-photo-hint">No photo yet? Add the bench now and snap a photo next time you're at the gym.</div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn-primary" onclick="saveBench()">Save bench</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/edit barbell sheet -->
+  <div class="overlay" id="barbell-overlay" onclick="if(event.target===this) closeBarbellSheet()">
+    <div class="sheet" role="dialog" aria-label="Barbell">
+      <div class="sheet-head">
+        <h2 id="barbell-sheet-title">Add barbell</h2>
+        <button class="sheet-close" onclick="closeBarbellSheet()" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div class="photo-pick-wrap">
+          <button class="photo-pick" onclick="document.getElementById('barbell-photo').click()">
+            <span id="barbell-photo-inner">📷<br>Add photo</span>
+          </button>
+          <input type="file" id="barbell-photo" accept="image/*" style="display:none" onchange="barbellPhotoChosen(this)">
+        </div>
+        <label class="settings-label" for="barbell-name">Label</label>
+        <input id="barbell-name" class="stack-input" maxlength="32" placeholder="e.g. Olympic Bar"
+          onkeydown="if(event.key==='Enter') document.getElementById('barbell-weight').focus()">
+        <label class="settings-label" for="barbell-weight" style="margin-top:14px">Bar weight (kg)</label>
+        <input id="barbell-weight" class="stack-input" inputmode="decimal" placeholder="e.g. 20"
+          onkeydown="if(event.key==='Enter') saveBarbell()">
+        <div class="bench-photo-hint">No photo yet? Add the bar now and snap a photo next time you're at the gym.</div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn-primary" onclick="saveBarbell()">Save barbell</button>
       </div>
     </div>
   </div>
@@ -1750,8 +1920,65 @@ function cableExerciseList(){
   return out;
 }
 
+/* ============ Free-weight exercise library (global) ============ */
+const EQUIPMENT = {
+  barbell:    {label:"Barbell",    icon:"🏋️"},
+  dumbbell:   {label:"Dumbbell",   icon:"💪"},
+  bodyweight: {label:"Bodyweight", icon:"🤸"},
+  cable:      {label:"Cable",      icon:"🔗"},
+  kettlebell: {label:"Kettlebell", icon:"🔔"}
+};
+const EQUIPMENT_ORDER = ["barbell","dumbbell","bodyweight","cable","kettlebell"];
+// How a free-weight exercise's set input behaves, reusing existing track logic:
+//  barbell/bodyweight -> total kg (plate), dumbbell/kettlebell -> per-hand kg, cable -> cable+grip flow
+const EQUIP_TRACK = {
+  barbell:"plate", bodyweight:"plate", dumbbell:"dumbbell", kettlebell:"dumbbell", cable:"cables"
+};
+function exerciseGhost(eq){
+  const icon = (EQUIPMENT[eq] || {icon:"🏋️"}).icon;
+  return "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#fff"/><text x="24" y="24" font-size="26" text-anchor="middle" dominant-baseline="central">' + icon + '</text></svg>'
+  );
+}
+const SEED_EXERCISES = [
+  {id:"e1",  name:"Barbell Bench Press",       group:"chest",     equipment:"barbell", bench:true},
+  {id:"e2",  name:"Incline Barbell Press",     group:"chest",     equipment:"barbell", bench:true},
+  {id:"e3",  name:"Dumbbell Bench Press",      group:"chest",     equipment:"dumbbell", bench:true},
+  {id:"e4",  name:"Dumbbell Fly",              group:"chest",     equipment:"dumbbell", bench:true},
+  {id:"e5",  name:"Barbell Row",               group:"back",      equipment:"barbell"},
+  {id:"e6",  name:"Pull-up",                   group:"back",      equipment:"bodyweight"},
+  {id:"e7",  name:"Dumbbell Row",              group:"back",      equipment:"dumbbell"},
+  {id:"e8",  name:"Barbell Squat",             group:"legs",      equipment:"barbell"},
+  {id:"e9",  name:"Romanian Deadlift",         group:"legs",      equipment:"barbell"},
+  {id:"e10", name:"Dumbbell Lunge",            group:"legs",      equipment:"dumbbell"},
+  {id:"e11", name:"Overhead Press",            group:"shoulders", equipment:"barbell", bench:true},
+  {id:"e12", name:"Dumbbell Shoulder Press",   group:"shoulders", equipment:"dumbbell", bench:true},
+  {id:"e13", name:"Dumbbell Lateral Raise",    group:"shoulders", equipment:"dumbbell", bench:true},
+  {id:"e14", name:"Barbell Curl",              group:"arms",      equipment:"barbell"},
+  {id:"e15", name:"Dumbbell Curl",             group:"arms",      equipment:"dumbbell", bench:true},
+  {id:"e16", name:"Dumbbell Tricep Extension", group:"arms",      equipment:"dumbbell", bench:true},
+  {id:"e17", name:"Dip",                       group:"arms",      equipment:"bodyweight"}
+];
+function allExercises(){
+  // seed list minus user-removed seeds, plus user-added customs
+  const removed = new Set(state.removedExercises || []);
+  const seeds = SEED_EXERCISES.filter(e => !removed.has(e.id));
+  return seeds.concat(state.exercises || []);
+}
+function exerciseById(id){
+  return allExercises().find(e => e.id === id) || null;
+}
+
 const SEED_GYMS = [
-  {id:"g1", name:"Zone Gym",    img:IMGS.gym_zone},
+  {id:"g1", name:"Zone Gym",    img:IMGS.gym_zone, dbUnit:"lbs", benches:[
+    {id:"bseed1", label:"Bench 1", img:null},
+    {id:"bseed2", label:"Bench 2", img:null},
+    {id:"bseed3", label:"Bench 3", img:null}
+  ], barbells:[
+    {id:"barseed1", label:"Olympic Bar", weight:20, img:null},
+    {id:"barseed2", label:"EZ Curl Bar", weight:10, img:null},
+    {id:"barseed3", label:"Light Bar",   weight:15, img:null}
+  ]},
   {id:"g2", name:"Muscleworks", img:IMGS.gym_muscleworks},
   {id:"g3", name:"Pro.Fit",     img:IMGS.gym_profit}
 ];
@@ -1801,9 +2028,35 @@ function allMachines(){ return state.machines; }
 function gymById(id){
   return state.gyms.find(g => g.id === id) || {id, name:"Gym", img:GHOST_IMG};
 }
-function byId(id){
-  return state.machines.find(m => m.id === id)
-    || {id, name:"Removed machine", group:null, img:GHOST_IMG, track:"plate"};
+function gymDbUnit(gymId){
+  const g = gymId ? state.gyms.find(x => x.id === gymId) : null;
+  return (g && g.dbUnit === "lbs") ? "lbs" : "kg";
+}
+function byId(id, gymCtx){
+  const machine = state.machines.find(m => m.id === id);
+  if(machine) return machine;
+  const ex = exerciseById(id);
+  if(ex){
+    // dumbbell unit follows the gym (Zone is lbs); default to the live workout's gym
+    const gid = (gymCtx !== undefined) ? gymCtx : (state.workout ? state.workout.gym : null);
+    let track = EQUIP_TRACK[ex.equipment] || "plate";
+    if(ex.equipment === "dumbbell" && gymDbUnit(gid) === "lbs") track = "dumbbell-lbs";
+    return {
+      id: ex.id,
+      name: ex.name,
+      group: ex.group,
+      img: exerciseGhost(ex.equipment),
+      track: track,
+      equipment: ex.equipment,
+      isExercise: true,
+      needsBench: !!ex.bench,
+      needsBarbell: ex.equipment === "barbell",
+      // weighted bodyweight moves (pull-ups, dips): allow optional added weight
+      extra: ex.equipment === "bodyweight" ? true : undefined,
+      attach: ex.equipment === "cable" ? true : undefined
+    };
+  }
+  return {id, name:"Removed machine", group:null, img:GHOST_IMG, track:"plate"};
 }
 
 /* ============ State ============ */
@@ -1814,17 +2067,19 @@ let state = {
   machines: [],       // full editable machine library
   removedSeeds: [],   // built-in machines the user has deleted
   cableExercises: [], // custom cable exercise names the user has added
+  exercises: [],      // user-added global free-weight exercises {id, name, group, equipment}
+  removedExercises: [], // seed exercise ids the user has deleted
   customGrips: [],    // user-added grips/attachments {id, name, img}
   gyms: [],           // the user's gyms
   renaming: false
 };
 let picked = new Set();
-const expanded = { machines: new Set(), picker: new Set() };   // collapsed by default
+const expanded = { machines: new Set(), picker: new Set(), exercises: new Set() };   // collapsed by default
 let machinesGym = null;        // which gym is open in the Machines tab
 
 function persist(){
   try{
-    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises, customGrips:state.customGrips}));
+    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises, exercises:state.exercises, removedExercises:state.removedExercises, customGrips:state.customGrips}));
   }catch(e){ /* storage unavailable — session-only */ }
 }
 function restore(){
@@ -1839,6 +2094,8 @@ function restore(){
       state.gyms = d.gyms || [];
       state.removedSeeds = d.removedSeeds || [];
       state.cableExercises = d.cableExercises || [];
+      state.exercises = d.exercises || [];
+      state.removedExercises = d.removedExercises || [];
       state.customGrips = d.customGrips || [];
     }
   }catch(e){}
@@ -1847,6 +2104,22 @@ function restore(){
   }
   if(!Array.isArray(state.gyms) || !state.gyms.length){
     state.gyms = SEED_GYMS.slice();
+  }
+  // one-time: give saved seed gyms their placeholder benches if they've never had a benches list
+  if(Array.isArray(state.gyms)){
+    SEED_GYMS.forEach(seed => {
+      const g = state.gyms.find(x => x.id === seed.id);
+      if(!g) return;
+      if(seed.benches && !("benches" in g)){
+        g.benches = seed.benches.map(b => ({id:b.id, label:b.label, img:b.img}));
+      }
+      if(seed.barbells && !("barbells" in g)){
+        g.barbells = seed.barbells.map(b => ({id:b.id, label:b.label, weight:b.weight, img:b.img}));
+      }
+      if(seed.dbUnit && !("dbUnit" in g)){
+        g.dbUnit = seed.dbUnit;
+      }
+    });
   }
   if(!Array.isArray(state.removedSeeds)) state.removedSeeds = [];
   // one-time cleanup: retired placeholder machines
@@ -2000,6 +2273,103 @@ function gripChip(gripId){
   if(!g) return "";
   return `<span class="setup-chip"><span class="setup-chip-img"><img src="${g.img}" alt=""></span>${esc(g.name)}</span>`;
 }
+function workoutBenches(){
+  const gid = state.workout && state.workout.gym;
+  const gym = gid ? gymById(gid) : null;
+  return gymBenches(gym);
+}
+function benchRow(i){
+  const ex = state.workout.exercises[i];
+  if(ex.bench !== undefined) return "";
+  const benches = workoutBenches();
+  if(!benches.length) return "";
+  const cells = benches.map(b => `
+    <button class="grip-cell" onclick="pickBench(${i}, '${b.id}')" title="${esc(b.label)}">
+      <div class="grip-img"><img src="${b.img || benchPlaceholder()}" alt="${esc(b.label)}"></div>
+      <span class="grip-name">${esc(b.label)}</span>
+    </button>`).join("");
+  return `
+    <div class="grip-block">
+      <div class="grip-label">Which bench? <span class="grip-req">required</span></div>
+      <div class="grip-grid">
+        ${cells}
+        <button class="grip-cell grip-none" onclick="pickBench(${i}, null)">
+          <div class="grip-img grip-img-none">⊘</div>
+          <span class="grip-name">No bench</span>
+        </button>
+      </div>
+    </div>`;
+}
+function benchChip(benchRef){
+  if(benchRef === null) return `<span class="setup-chip"><span class="setup-chip-none">⊘</span>No bench</span>`;
+  // benchRef is a stored {id,label,img} snapshot
+  const img = benchRef.img || benchPlaceholder();
+  return `<span class="setup-chip"><span class="setup-chip-img"><img src="${img}" alt=""></span>${esc(benchRef.label)}</span>`;
+}
+function pickBench(i, benchId){
+  if(benchId === null){
+    state.workout.exercises[i].bench = null;
+  } else {
+    const b = workoutBenches().find(x => x.id === benchId);
+    if(!b) return;
+    // store a snapshot so history stays correct even if the bench is later edited/deleted
+    state.workout.exercises[i].bench = {id:b.id, label:b.label, img:b.img || null};
+  }
+  persist(); render();
+}
+function resetBench(i){
+  state.workout.exercises[i].bench = undefined;
+  delete state.workout.exercises[i].bench;
+  persist(); render();
+}
+function workoutBarbells(){
+  const gid = state.workout && state.workout.gym;
+  const gym = gid ? gymById(gid) : null;
+  return gymBarbells(gym);
+}
+function barbellRow(i){
+  const ex = state.workout.exercises[i];
+  if(ex.barbell !== undefined) return "";
+  const bars = workoutBarbells();
+  if(!bars.length) return "";
+  const cells = bars.map(b => `
+    <button class="grip-cell" onclick="pickBarbell(${i}, '${b.id}')" title="${esc(b.label)}">
+      <div class="grip-img"><img src="${b.img || barbellPlaceholder()}" alt="${esc(b.label)}"></div>
+      <span class="grip-name">${esc(b.label)}${b.weight != null ? " · " + esc(String(b.weight)) + "kg" : ""}</span>
+    </button>`).join("");
+  return `
+    <div class="grip-block">
+      <div class="grip-label">Which barbell? <span class="grip-req">required</span></div>
+      <div class="grip-grid">
+        ${cells}
+        <button class="grip-cell grip-none" onclick="pickBarbell(${i}, null)">
+          <div class="grip-img grip-img-none">⊘</div>
+          <span class="grip-name">Not set</span>
+        </button>
+      </div>
+    </div>`;
+}
+function barbellChip(barRef){
+  if(barRef === null) return `<span class="setup-chip"><span class="setup-chip-none">⊘</span>No bar</span>`;
+  const img = barRef.img || barbellPlaceholder();
+  const w = barRef.weight != null ? " · " + esc(String(barRef.weight)) + "kg" : "";
+  return `<span class="setup-chip"><span class="setup-chip-img"><img src="${img}" alt=""></span>${esc(barRef.label)}${w}</span>`;
+}
+function pickBarbell(i, barId){
+  if(barId === null){
+    state.workout.exercises[i].barbell = null;
+  } else {
+    const b = workoutBarbells().find(x => x.id === barId);
+    if(!b) return;
+    state.workout.exercises[i].barbell = {id:b.id, label:b.label, weight:b.weight != null ? b.weight : null, img:b.img || null};
+  }
+  persist(); render();
+}
+function resetBarbell(i){
+  state.workout.exercises[i].barbell = undefined;
+  delete state.workout.exercises[i].barbell;
+  persist(); render();
+}
 function uniCapable(m, ex){
   // can this exercise be done one side at a time?
   if(m && m.unilateral) return true;
@@ -2095,10 +2465,11 @@ function addSetRow(m, i, last){
     </div>`;
 }
 
-function groupBtn(g, scope, list){
-  const isOpen = expanded[scope].has(g);
+function groupBtn(g, scope, list, key){
+  key = key || g;
+  const isOpen = expanded[scope].has(key);
   return `
-    <button class="group-btn ${isOpen?"open":""}" onclick="toggleGroup('${scope}','${g}')"
+    <button class="group-btn ${isOpen?"open":""}" onclick="toggleGroup('${scope}','${key}')"
       aria-expanded="${isOpen}" style="color:${GROUPS[g].color}">
       <span class="plate"></span>
       <h2 style="color:var(--chalk)">${GROUPS[g].label}</h2>
@@ -2108,7 +2479,7 @@ function groupBtn(g, scope, list){
 }
 function toggleGroup(scope, g){
   expanded[scope].has(g) ? expanded[scope].delete(g) : expanded[scope].add(g);
-  if(scope === "machines") render();
+  if(scope === "machines" || scope === "exercises") render();
   else renderPickerBody();
 }
 
@@ -2118,7 +2489,7 @@ function switchTab(tab){
   state.renaming = false;
   state.histSelect = false;
   state.histSelected = {};
-  for(const t of ["today","machines","history"]){
+  for(const t of ["today","machines","exercises","history"]){
     document.getElementById("tab-"+t).classList.toggle("active", t===tab);
   }
   render();
@@ -2133,6 +2504,7 @@ function render(){
   const v = document.getElementById("view");
   if(state.tab === "today")    v.innerHTML = renderToday();
   if(state.tab === "machines") v.innerHTML = renderMachines();
+  if(state.tab === "exercises") v.innerHTML = renderExercises();
   if(state.tab === "history")  v.innerHTML = renderHistory();
   if(state.renaming){
     const inp = document.getElementById("rename-input");
@@ -2217,6 +2589,16 @@ function renderToday(){
     const gripChosen = ex.grip !== undefined;
     const cableReady = isCable && named && gripChosen;     // cable: both picked → collapsed
     const attachReady = hasAttach && gripChosen;           // attach machine: grip picked
+    // bench: only for flagged exercises, only when this gym actually has benches
+    const benchList = workoutBenches();
+    const needsBench = !!m.needsBench && !isCable && !hasAttach && benchList.length > 0;
+    const benchChosen = ex.bench !== undefined;
+    const benchReady = needsBench && benchChosen;
+    // barbell: for barbell exercises, only when this gym has barbells defined
+    const barbellList = workoutBarbells();
+    const needsBarbell = !!m.needsBarbell && !isCable && !hasAttach && barbellList.length > 0;
+    const barbellChosen = ex.barbell !== undefined;
+    const barbellReady = needsBarbell && barbellChosen;
 
     // ----- Card header -----
     let headInfo;
@@ -2230,7 +2612,9 @@ function renderToday(){
       headInfo = `
           <div class="ex-name">${esc(m.name)}</div>
           ${plateChip(m.group)}
-          ${attachReady ? `<div class="setup-chips">${gripChip(ex.grip)}<button class="setup-change" onclick="resetCableSetup(${i})">change</button></div>` : ""}`;
+          ${attachReady ? `<div class="setup-chips">${gripChip(ex.grip)}<button class="setup-change" onclick="resetCableSetup(${i})">change</button></div>` : ""}
+          ${benchReady ? `<div class="setup-chips">${benchChip(ex.bench)}<button class="setup-change" onclick="resetBench(${i})">change</button></div>` : ""}
+          ${barbellReady ? `<div class="setup-chips">${barbellChip(ex.barbell)}<button class="setup-change" onclick="resetBarbell(${i})">change</button></div>` : ""}`;
     }
 
     // ----- Step 1: pick exercise (only if cable & not named) -----
@@ -2258,11 +2642,27 @@ function renderToday(){
       gripStep = gripRow(m, i);
     }
 
-    // ----- Set entry: non-cable/non-attach always; cable once both chosen; attach once grip chosen -----
+    // ----- Bench step: flagged exercise at a gym that has benches, until one is picked -----
+    let benchStep = "";
+    if(needsBench && !benchChosen){
+      benchStep = benchRow(i);
+    }
+
+    // ----- Barbell step: barbell exercise at a gym with barbells, after bench resolved -----
+    let barbellStep = "";
+    if(needsBarbell && !barbellChosen && (!needsBench || benchChosen)){
+      barbellStep = barbellRow(i);
+    }
+
+    // ----- Set entry: gated behind whichever setup steps apply -----
     let showSets;
     if(isCable) showSets = cableReady;
     else if(hasAttach) showSets = attachReady;
-    else showSets = true;
+    else {
+      showSets = true;
+      if(needsBench && !benchReady) showSets = false;
+      if(needsBarbell && !barbellReady) showSets = false;
+    }
 
     html += `
     <div class="card">
@@ -2276,6 +2676,8 @@ function renderToday(){
       </div>
       ${cableNameField}
       ${gripStep}
+      ${benchStep}
+      ${barbellStep}
       ${showSets ? `<div class="sets">${setsHtml}</div>${addSetRow(m, i, last)}${noteHtml}` : ""}
     </div>`;
   });
@@ -2352,14 +2754,314 @@ function renderMachines(){
       }
     }
   }
+  html += renderBenchSection(gym);
+  html += renderDbUnitSetting(gym);
+  html += renderBarbellSection(gym);
   html += `<button class="btn-secondary" style="margin-top:4px" onclick="openAddMachine()">+ Add machine</button>`;
   return html;
+}
+
+/* ============ Benches (per-gym) ============ */
+function benchPlaceholder(){
+  return "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#eee"/><g fill="none" stroke="#999" stroke-width="2.5" stroke-linecap="round"><path d="M10 28h28M14 28v8M34 28v8M10 24h28"/></g></svg>'
+  );
+}
+function gymBenches(gym){ return (gym && gym.benches) || []; }
+function renderBenchSection(gym){
+  const benches = gymBenches(gym);
+  let html = `<div class="bench-head">Benches</div>`;
+  if(!benches.length){
+    html += `<div class="bench-empty">No benches yet — add one and snap a photo at the gym.</div>`;
+  } else {
+    html += `<div class="card">`;
+    html += benches.map(b => `
+      <div class="machine-row tappable" onclick="openBenchDetail('${b.id}')">
+        <div class="thumb"><img src="${b.img || benchPlaceholder()}" alt=""></div>
+        <div class="ex-info">
+          <div class="ex-name">${esc(b.label)}</div>
+          <div class="meta">${b.img ? "Photo added" : "No photo yet"}</div>
+        </div>
+        <button class="ex-remove row-menu" onclick="event.stopPropagation(); deleteBench('${b.id}')" aria-label="Delete ${esc(b.label)}">✕</button>
+      </div>`).join("");
+    html += `</div>`;
+  }
+  html += `<button class="btn-secondary" style="margin:4px 0 14px" onclick="openAddBench()">+ Add bench</button>`;
+  return html;
+}
+let editingBench = null; // {id?, label, img}
+function nextBenchLabel(gym){
+  const benches = gymBenches(gym);
+  let n = benches.length + 1;
+  const labels = new Set(benches.map(b => b.label.toLowerCase()));
+  while(labels.has(("bench " + n).toLowerCase())) n++;
+  return "Bench " + n;
+}
+function openAddBench(){
+  const gym = gymById(machinesGym);
+  if(!gym) return;
+  editingBench = {label: nextBenchLabel(gym), img: null};
+  document.getElementById("bench-name").value = editingBench.label;
+  document.getElementById("bench-photo-inner").innerHTML = `<img src="${benchPlaceholder()}" alt="">`;
+  document.getElementById("bench-sheet-title").textContent = "Add bench";
+  document.getElementById("bench-overlay").classList.add("open");
+}
+function openBenchDetail(id){
+  const gym = gymById(machinesGym);
+  const b = gymBenches(gym).find(x => x.id === id);
+  if(!b) return;
+  editingBench = {id: b.id, label: b.label, img: b.img || null};
+  document.getElementById("bench-name").value = b.label;
+  document.getElementById("bench-photo-inner").innerHTML = `<img src="${b.img || benchPlaceholder()}" alt="">`;
+  document.getElementById("bench-sheet-title").textContent = "Edit bench";
+  document.getElementById("bench-overlay").classList.add("open");
+}
+function closeBenchSheet(){ document.getElementById("bench-overlay").classList.remove("open"); }
+function benchPhotoChosen(input){
+  readAndResizeImage(input, 420, url => {
+    editingBench.img = url;
+    document.getElementById("bench-photo-inner").innerHTML = `<img src="${url}" alt="Bench photo">`;
+  });
+}
+function saveBench(){
+  const gym = gymById(machinesGym);
+  if(!gym || !editingBench) return;
+  const label = document.getElementById("bench-name").value.trim();
+  if(!label){ document.getElementById("bench-name").focus(); return; }
+  if(!gym.benches) gym.benches = [];
+  if(editingBench.id){
+    const b = gym.benches.find(x => x.id === editingBench.id);
+    if(b){ b.label = label; b.img = editingBench.img; }
+  } else {
+    gym.benches.push({id:"b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), label, img: editingBench.img});
+  }
+  persist();
+  closeBenchSheet();
+  render();
+  toast(label + " saved");
+}
+function deleteBench(id){
+  const gym = gymById(machinesGym);
+  const b = gymBenches(gym).find(x => x.id === id);
+  if(!b) return;
+  askConfirm("Delete bench?", '"' + b.label + '" will be removed from ' + esc(gym.name) + ".", "Delete", () => {
+    gym.benches = gymBenches(gym).filter(x => x.id !== id);
+    persist(); render();
+    toast(b.label + " deleted");
+  });
+}
+
+/* ============ Barbells (per-gym) ============ */
+function barbellPlaceholder(){
+  return "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="#eee"/><g fill="none" stroke="#999" stroke-width="2.5" stroke-linecap="round"><path d="M6 24h36"/><path d="M11 18v12M15 20v8M33 20v8M37 18v12"/></g></svg>'
+  );
+}
+function gymBarbells(gym){ return (gym && gym.barbells) || []; }
+function renderBarbellSection(gym){
+  const bars = gymBarbells(gym);
+  let html = `<div class="bench-head">Barbells</div>`;
+  if(!bars.length){
+    html += `<div class="bench-empty">No barbells yet — add one and snap a photo at the gym.</div>`;
+  } else {
+    html += `<div class="card">`;
+    html += bars.map(b => `
+      <div class="machine-row tappable" onclick="openBarbellDetail('${b.id}')">
+        <div class="thumb"><img src="${b.img || barbellPlaceholder()}" alt=""></div>
+        <div class="ex-info">
+          <div class="ex-name">${esc(b.label)}</div>
+          <div class="meta">${b.weight != null ? esc(String(b.weight)) + " kg" : "No weight set"}${b.img ? "" : " · No photo yet"}</div>
+        </div>
+        <button class="ex-remove row-menu" onclick="event.stopPropagation(); deleteBarbell('${b.id}')" aria-label="Delete ${esc(b.label)}">✕</button>
+      </div>`).join("");
+    html += `</div>`;
+  }
+  html += `<button class="btn-secondary" style="margin:4px 0 14px" onclick="openAddBarbell()">+ Add barbell</button>`;
+  return html;
+}
+let editingBarbell = null; // {id?, label, weight, img}
+function openAddBarbell(){
+  const gym = gymById(machinesGym);
+  if(!gym) return;
+  editingBarbell = {label:"", weight:20, img:null};
+  document.getElementById("barbell-name").value = "";
+  document.getElementById("barbell-weight").value = "20";
+  document.getElementById("barbell-photo-inner").innerHTML = `<img src="${barbellPlaceholder()}" alt="">`;
+  document.getElementById("barbell-sheet-title").textContent = "Add barbell";
+  document.getElementById("barbell-overlay").classList.add("open");
+}
+function openBarbellDetail(id){
+  const gym = gymById(machinesGym);
+  const b = gymBarbells(gym).find(x => x.id === id);
+  if(!b) return;
+  editingBarbell = {id:b.id, label:b.label, weight:b.weight, img:b.img || null};
+  document.getElementById("barbell-name").value = b.label;
+  document.getElementById("barbell-weight").value = b.weight != null ? String(b.weight) : "";
+  document.getElementById("barbell-photo-inner").innerHTML = `<img src="${b.img || barbellPlaceholder()}" alt="">`;
+  document.getElementById("barbell-sheet-title").textContent = "Edit barbell";
+  document.getElementById("barbell-overlay").classList.add("open");
+}
+function closeBarbellSheet(){ document.getElementById("barbell-overlay").classList.remove("open"); }
+function barbellPhotoChosen(input){
+  readAndResizeImage(input, 420, url => {
+    editingBarbell.img = url;
+    document.getElementById("barbell-photo-inner").innerHTML = `<img src="${url}" alt="Barbell photo">`;
+  });
+}
+function saveBarbell(){
+  const gym = gymById(machinesGym);
+  if(!gym || !editingBarbell) return;
+  const label = document.getElementById("barbell-name").value.trim();
+  if(!label){ document.getElementById("barbell-name").focus(); return; }
+  const wRaw = document.getElementById("barbell-weight").value.trim();
+  let weight = null;
+  if(wRaw !== ""){
+    weight = parseFloat(wRaw);
+    if(isNaN(weight) || weight < 0){ toast("Enter a valid bar weight"); return; }
+  }
+  if(!gym.barbells) gym.barbells = [];
+  if(editingBarbell.id){
+    const b = gym.barbells.find(x => x.id === editingBarbell.id);
+    if(b){ b.label = label; b.weight = weight; b.img = editingBarbell.img; }
+  } else {
+    gym.barbells.push({id:"bar"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), label, weight, img: editingBarbell.img});
+  }
+  persist();
+  closeBarbellSheet();
+  render();
+  toast(label + " saved");
+}
+function deleteBarbell(id){
+  const gym = gymById(machinesGym);
+  const b = gymBarbells(gym).find(x => x.id === id);
+  if(!b) return;
+  askConfirm("Delete barbell?", '"' + b.label + '" will be removed from ' + esc(gym.name) + ".", "Delete", () => {
+    gym.barbells = gymBarbells(gym).filter(x => x.id !== id);
+    persist(); render();
+    toast(b.label + " deleted");
+  });
+}
+
+/* ============ Dumbbell unit (per-gym) ============ */
+function renderDbUnitSetting(gym){
+  const unit = (gym && gym.dbUnit === "lbs") ? "lbs" : "kg";
+  return `
+    <div class="bench-head">Dumbbell weights</div>
+    <div class="dbunit-row">
+      <div class="dbunit-text">Logged in ${unit === "lbs" ? "pounds" : "kilograms"}</div>
+      <div class="dbunit-seg">
+        <button class="dbunit-btn ${unit==="kg"?"on":""}" onclick="setGymDbUnit('kg')">kg</button>
+        <button class="dbunit-btn ${unit==="lbs"?"on":""}" onclick="setGymDbUnit('lbs')">lbs</button>
+      </div>
+    </div>`;
+}
+function setGymDbUnit(unit){
+  const gym = gymById(machinesGym);
+  if(!gym) return;
+  gym.dbUnit = unit;
+  persist(); render();
+  toast("Dumbbells set to " + unit);
 }
 
 function selectGym(id){
   machinesGym = id;
   expanded.machines = new Set();
   render();
+}
+
+/* ============ Exercises tab (global free-weight library) ============ */
+const EXERCISE_GROUP_ORDER = ["chest","back","legs","shoulders","arms"];
+function equipChip(eq){
+  const e = EQUIPMENT[eq] || {label:eq, icon:""};
+  return `<span class="opt-tag">${e.icon} ${esc(e.label)}</span>`;
+}
+function renderExercises(){
+  const all = allExercises();
+  let html = `<div class="view-title">Exercise Library</div>`;
+  html += `<div class="view-sub">${all.length} exercise${all.length===1?"":"s"} · available in every gym · tap a group to open it</div>`;
+  for(const g of EXERCISE_GROUP_ORDER){
+    const list = all.filter(e => e.group === g);
+    html += groupBtn(g, "exercises", list);
+    if(expanded.exercises.has(g)){
+      if(!list.length){
+        html += `<div class="group-list"><div class="group-empty">No exercises here yet</div></div>`;
+      } else {
+        html += `<div class="group-list"><div class="card">`;
+        html += list.map(e => `
+          <div class="machine-row">
+            <div class="ex-info">
+              <div class="ex-name">${esc(e.name)}</div>
+              <div class="meta">${equipChip(e.equipment)}${e.bench ? ` <span class="opt-tag">🪑 Bench</span>` : ""}</div>
+            </div>
+            <button class="ex-remove row-menu" onclick="deleteExercise('${e.id}')" aria-label="Delete ${esc(e.name)}">✕</button>
+          </div>`).join("");
+        html += `</div></div>`;
+      }
+    }
+  }
+  html += `<button class="btn-secondary" style="margin-top:4px" onclick="openAddExerciseLib()">+ Add exercise</button>`;
+  return html;
+}
+
+let newExercise = null;
+function openAddExerciseLib(){
+  newExercise = {group:null, equipment:null, bench:false};
+  document.getElementById("addexlib-name").value = "";
+  renderAddExerciseLibForm();
+  document.getElementById("addexlib-overlay").classList.add("open");
+}
+function closeAddExerciseLib(){
+  document.getElementById("addexlib-overlay").classList.remove("open");
+}
+function renderAddExerciseLibForm(){
+  document.getElementById("exlib-groups").innerHTML = EXERCISE_GROUP_ORDER.map(g => `
+    <button class="gp ${newExercise.group===g ? "picked" : ""}" style="color:${GROUPS[g].color}" onclick="pickExLibGroup('${g}')">
+      <span class="plate"></span><span style="color:var(--chalk)">${GROUPS[g].label}</span>
+    </button>`).join("");
+  document.getElementById("exlib-equip").innerHTML = EQUIPMENT_ORDER.map(eq => `
+    <button class="gp ${newExercise.equipment===eq ? "picked" : ""}" onclick="pickExLibEquip('${eq}')">
+      <span style="color:var(--chalk)">${EQUIPMENT[eq].icon} ${EQUIPMENT[eq].label}</span>
+    </button>`).join("");
+  document.getElementById("exlib-bench").classList.toggle("on", !!newExercise.bench);
+}
+function pickExLibGroup(g){ newExercise.group = g; renderAddExerciseLibForm(); }
+function pickExLibEquip(eq){ newExercise.equipment = eq; renderAddExerciseLibForm(); }
+function toggleExLibBench(){ newExercise.bench = !newExercise.bench; renderAddExerciseLibForm(); }
+function saveExerciseLib(){
+  const name = document.getElementById("addexlib-name").value.trim();
+  if(!name){ document.getElementById("addexlib-name").focus(); return; }
+  if(!newExercise.group){ toast("Pick a muscle group"); return; }
+  if(!newExercise.equipment){ toast("Pick an equipment type"); return; }
+  const dupe = allExercises().some(e => e.name.toLowerCase() === name.toLowerCase());
+  if(dupe){ toast("That exercise already exists"); return; }
+  if(!state.exercises) state.exercises = [];
+  const ex = {id:"ux"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, group:newExercise.group, equipment:newExercise.equipment};
+  if(newExercise.bench) ex.bench = true;
+  state.exercises.push(ex);
+  expanded.exercises.add(newExercise.group);
+  persist();
+  closeAddExerciseLib();
+  render();
+  toast(name + " added");
+}
+function deleteExercise(id){
+  const e = exerciseById(id);
+  if(!e) return;
+  askConfirm(
+    "Delete exercise?",
+    '"' + e.name + '" will be removed from your library.',
+    "Delete",
+    () => {
+      if(id.indexOf("e") === 0 && SEED_EXERCISES.some(s => s.id === id)){
+        if(!state.removedExercises) state.removedExercises = [];
+        if(!state.removedExercises.includes(id)) state.removedExercises.push(id);
+      } else {
+        state.exercises = (state.exercises || []).filter(x => x.id !== id);
+      }
+      persist(); render();
+      toast(e.name + " deleted");
+    }
+  );
 }
 
 function timesUsed(mid){
@@ -2394,14 +3096,20 @@ function renderHistory(){
     const nSets = w.exercises.reduce((a,e)=>a+e.sets.length,0);
     const wName = w.name && w.name.trim() ? w.name : "Workout";
     const body = w.exercises.map(e => {
-      const m = byId(e.mid);
+      const m = byId(e.mid, w.gym);
       const setRows = e.sets.map((s, si) => `
         <div class="hist-set">
           <span class="hs-num">Set ${si+1}</span>
           <span class="hs-val">${fmtSet(m, s, true)}</span>
         </div>`).join("");
       const exTitle = (e.exName && e.exName.trim()) ? esc(e.exName) : esc(m.name);
-      const exSub = (e.exName && e.exName.trim()) ? `<div class="hist-ex-sub">${esc(m.name)}</div>` : "";
+      const benchLabel = (e.bench && e.bench.label) ? `🪑 ${esc(e.bench.label)}` : "";
+      const barbellLabel = (e.barbell && e.barbell.label) ? `🏋️ ${esc(e.barbell.label)}${e.barbell.weight != null ? " " + esc(String(e.barbell.weight)) + "kg" : ""}` : "";
+      const subBits = [];
+      if(e.exName && e.exName.trim()) subBits.push(esc(m.name));
+      if(barbellLabel) subBits.push(barbellLabel);
+      if(benchLabel) subBits.push(benchLabel);
+      const exSub = subBits.length ? `<div class="hist-ex-sub">${subBits.join(" · ")}</div>` : "";
       return `
         <div class="hist-ex">
           <div class="thumb sm"><img src="${m.img}" alt="${esc(m.name)}"></div>
@@ -2677,7 +3385,7 @@ function finishWorkout(){
     date: w.startedAt,
     exercises: w.exercises
       .filter(e => e.sets.length)
-      .map(e => ({mid:e.mid, sets:e.sets, note:e.note, exName:e.exName || ""}))
+      .map(e => ({mid:e.mid, sets:e.sets, note:e.note, exName:e.exName || "", bench:e.bench, barbell:e.barbell}))
   });
   state.workout = null;
   persist();
@@ -2688,10 +3396,12 @@ function finishWorkout(){
 /* ============ Picker ============ */
 let pickerStartsWorkout = false;
 let pendingGym = null;
+let pickerMode = "machines"; // "machines" | "free"
 function openPicker(startNew){
   pickerStartsWorkout = startNew;
   if(startNew && !pendingGym){ openGymChooser(); return; }
   picked = new Set();
+  pickerMode = "machines";       // always start on Machines
   expanded.picker = new Set();   // start collapsed each time
   document.getElementById("picker-title").textContent = startNew
     ? "New workout · " + gymById(pendingGym).name
@@ -2703,32 +3413,74 @@ function openPicker(startNew){
   updatePickerBtn();
   document.getElementById("overlay").classList.add("open");
 }
+function setPickerMode(mode){
+  if(pickerMode === mode) return;
+  pickerMode = mode;
+  renderPickerBody();
+}
 function renderPickerBody(){
   const inWorkout = new Set(state.workout ? state.workout.exercises.map(e=>e.mid) : []);
   const gymId = state.workout ? state.workout.gym : pendingGym;
-  let html = "";
-  for(const g of GROUP_ORDER){
-    const list = state.machines.filter(m => m.group === g && (!gymId || m.gym === gymId));
-    html += groupBtn(g, "picker", list);
-    if(expanded.picker.has(g) && !list.length){
-      html += `<div class="group-list"><div class="group-empty">No machines here yet</div></div>`;
-    }
-    if(expanded.picker.has(g) && list.length){
-      html += `<div class="group-list">`;
-      html += list.map(m => {
-        const already = inWorkout.has(m.id);
-        const isPicked = picked.has(m.id);
-        return `
-        <button class="pick-row ${already?"already":""} ${isPicked?"picked":""}" id="pick-${m.id}"
-          ${already ? "disabled" : `onclick="togglePick('${m.id}')"`}>
-          <div class="thumb"><img src="${m.img}" alt=""></div>
+  const exAll = allExercises();
+  const rowFor = (item, isEx) => {
+    const already = inWorkout.has(item.id);
+    const isPicked = picked.has(item.id);
+    const thumb = isEx ? exerciseGhost(item.equipment) : item.img;
+    const sub = already
+      ? `<div class="meta" style="color:var(--muted);font-size:12px">Already in today's workout</div>`
+      : (isEx ? `<div class="meta">${equipChip(item.equipment)}</div>` : "");
+    return `
+        <button class="pick-row ${already?"already":""} ${isPicked?"picked":""}" id="pick-${item.id}"
+          ${already ? "disabled" : `onclick="togglePick('${item.id}')"`}>
+          <div class="thumb"><img src="${thumb}" alt=""></div>
           <div class="ex-info">
-            <div class="ex-name">${esc(m.name)}</div>
-            ${already ? `<div class="meta" style="color:var(--muted);font-size:12px">Already in today's workout</div>` : ""}
+            <div class="ex-name">${esc(item.name)}</div>
+            ${sub}
           </div>
           <span class="pick-check">✓</span>
         </button>`;
-      }).join("");
+  };
+
+  // count picks in each mode so the toggle can show a badge
+  const machineIds = new Set(state.machines.filter(m => !gymId || m.gym === gymId).map(m => m.id));
+  let pickedMachines = 0, pickedFree = 0;
+  picked.forEach(id => { machineIds.has(id) ? pickedMachines++ : pickedFree++; });
+
+  let html = `
+    <div class="picker-toggle">
+      <button class="picker-toggle-btn ${pickerMode==="machines"?"on":""}" onclick="setPickerMode('machines')">
+        Machines${pickedMachines ? ` <span class="picker-toggle-badge">${pickedMachines}</span>` : ""}
+      </button>
+      <button class="picker-toggle-btn ${pickerMode==="free"?"on":""}" onclick="setPickerMode('free')">
+        Free weights${pickedFree ? ` <span class="picker-toggle-badge">${pickedFree}</span>` : ""}
+      </button>
+    </div>`;
+
+  if(pickerMode === "machines"){
+    for(const g of GROUP_ORDER){
+      const machineList = state.machines.filter(m => m.group === g && (!gymId || m.gym === gymId));
+      html += groupBtn(g, "picker", machineList);
+      if(!expanded.picker.has(g)) continue;
+      if(!machineList.length){
+        html += `<div class="group-list"><div class="group-empty">No machines here yet</div></div>`;
+        continue;
+      }
+      html += `<div class="group-list">`;
+      html += machineList.map(m => rowFor(m, false)).join("");
+      html += `</div>`;
+    }
+  } else {
+    for(const g of EXERCISE_GROUP_ORDER){
+      const exList = exAll.filter(e => e.group === g);
+      const key = "fw:" + g;
+      html += groupBtn(g, "picker", exList, key);
+      if(!expanded.picker.has(key)) continue;
+      if(!exList.length){
+        html += `<div class="group-list"><div class="group-empty">No exercises here yet</div></div>`;
+        continue;
+      }
+      html += `<div class="group-list">`;
+      html += exList.map(e => rowFor(e, true)).join("");
       html += `</div>`;
     }
   }
