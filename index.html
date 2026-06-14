@@ -117,11 +117,12 @@
     flex-direction:column;
     position:relative;
     box-shadow:var(--app-shadow);
+    padding-top:env(safe-area-inset-top);
   }
 
   /* ---------- Header (slim sticky top bar) ---------- */
   header{
-    position:sticky; top:10px; z-index:30;
+    position:sticky; top:calc(10px + env(safe-area-inset-top)); z-index:30;
     display:flex; align-items:center; gap:11px;
     margin:10px 16px 2px;
     padding:11px 16px;
@@ -649,6 +650,27 @@
     color:var(--muted);
     font-size:22px;
   }
+  .grip-add .grip-img-add{
+    background:var(--bg);
+    color:var(--accent);
+    font-size:26px; font-weight:300;
+    display:flex; align-items:center; justify-content:center;
+  }
+  body[data-theme="chalk"] .grip-add .grip-img-add{color:var(--chalk);}
+  .grip-add{border-style:dashed;}
+  .addgrip-photo{display:block; margin-bottom:14px; cursor:pointer;}
+  .addgrip-photo-inner{
+    width:100%; height:120px;
+    background:var(--surface-2);
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    color:var(--muted);
+    overflow:hidden;
+  }
+  .addgrip-photo-inner img{width:100%; height:100%; object-fit:contain; background:#fff;}
+  .addgrip-photo-plus{font-size:30px; font-weight:300; line-height:1;}
+  .addgrip-photo-text{font-size:13px; font-weight:600; letter-spacing:.03em;}
   .grip-name{
     font-size:10px; font-weight:600;
     letter-spacing:.02em; text-align:center;
@@ -1568,6 +1590,27 @@
     </div>
   </div>
 
+  <!-- Add custom grip / attachment -->
+  <div class="overlay confirm-overlay" id="addgrip-overlay" onclick="if(event.target===this) closeAddGrip()">
+    <div class="confirm-box" role="dialog" aria-label="Add attachment">
+      <div class="confirm-title">New attachment</div>
+      <div class="confirm-msg">Take or choose a photo, give it a name, and it'll be saved to your grips.</div>
+      <label class="addgrip-photo" id="addgrip-photo-label">
+        <input type="file" id="addgrip-photo" accept="image/*" style="display:none" onchange="addGripPhotoChosen(this)">
+        <div class="addgrip-photo-inner" id="addgrip-photo-inner">
+          <span class="addgrip-photo-plus">＋</span>
+          <span class="addgrip-photo-text">Add photo</span>
+        </div>
+      </label>
+      <input id="addgrip-name" class="addex-input" maxlength="30" placeholder="e.g. V-bar"
+        onkeydown="if(event.key==='Enter') confirmAddGrip()">
+      <div class="confirm-actions">
+        <button class="btn-secondary" style="margin:0" onclick="closeAddGrip()">Cancel</button>
+        <button class="btn-primary" onclick="confirmAddGrip()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirm dialog -->
   <div class="overlay confirm-overlay" id="confirm-overlay" onclick="if(event.target===this) closeConfirm()">
     <div class="confirm-box" role="alertdialog" aria-labelledby="confirm-title">
@@ -1685,7 +1728,10 @@ const GRIPS = [
   {id:"rope",         name:"Rope",             img:IMGS.grip_rope},
   {id:"stirrup",      name:"Single Handle",    img:IMGS.grip_stirrup}
 ];
-function gripById(id){ return GRIPS.find(g => g.id === id) || null; }
+function allGrips(){
+  return GRIPS.concat(state.customGrips || []);
+}
+function gripById(id){ return allGrips().find(g => g.id === id) || null; }
 function allMachines(){ return state.machines; }
 function gymById(id){
   return state.gyms.find(g => g.id === id) || {id, name:"Gym", img:GHOST_IMG};
@@ -1703,6 +1749,7 @@ let state = {
   machines: [],       // full editable machine library
   removedSeeds: [],   // built-in machines the user has deleted
   cableExercises: [], // custom cable exercise names the user has added
+  customGrips: [],    // user-added grips/attachments {id, name, img}
   gyms: [],           // the user's gyms
   renaming: false
 };
@@ -1712,7 +1759,7 @@ let machinesGym = null;        // which gym is open in the Machines tab
 
 function persist(){
   try{
-    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises}));
+    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises, customGrips:state.customGrips}));
   }catch(e){ /* storage unavailable — session-only */ }
 }
 function restore(){
@@ -1727,6 +1774,7 @@ function restore(){
       state.gyms = d.gyms || [];
       state.removedSeeds = d.removedSeeds || [];
       state.cableExercises = d.cableExercises || [];
+      state.customGrips = d.customGrips || [];
     }
   }catch(e){}
   if(!Array.isArray(state.machines) || !state.machines.length){
@@ -1857,7 +1905,7 @@ function gripRow(m, i){
   // only show the grid while no grip has been chosen yet
   if(ex.grip !== undefined) return "";
   const gripLabel = (m.group === "cables") ? "Step 2 · Pick a grip" : "Pick an attachment";
-  const cells = GRIPS.map(g => `
+  const cells = allGrips().map(g => `
     <button class="grip-cell" onclick="pickGrip(${i}, '${g.id}')" title="${esc(g.name)}">
       <div class="grip-img"><img src="${g.img}" alt="${esc(g.name)}"></div>
       <span class="grip-name">${esc(g.name)}</span>
@@ -1870,6 +1918,10 @@ function gripRow(m, i){
         <button class="grip-cell grip-none" onclick="pickGrip(${i}, null)">
           <div class="grip-img grip-img-none">⊘</div>
           <span class="grip-name">No grip</span>
+        </button>
+        <button class="grip-cell grip-add" onclick="openAddGrip(${i})">
+          <div class="grip-img grip-img-add">＋</div>
+          <span class="grip-name">Add grip</span>
         </button>
       </div>
     </div>`;
@@ -2313,6 +2365,39 @@ function pickOpt(i, val){
 }
 function pickGrip(i, gripId){
   state.workout.exercises[i].grip = gripId;  // id, or null for "No grip"
+  persist(); render();
+}
+let addGripTarget = null;
+let addGripImg = null;
+function openAddGrip(i){
+  addGripTarget = i;
+  addGripImg = null;
+  document.getElementById("addgrip-name").value = "";
+  document.getElementById("addgrip-photo-inner").innerHTML =
+    '<span class="addgrip-photo-plus">＋</span><span class="addgrip-photo-text">Add photo</span>';
+  document.getElementById("addgrip-overlay").classList.add("open");
+}
+function closeAddGrip(){
+  addGripTarget = null;
+  addGripImg = null;
+  document.getElementById("addgrip-overlay").classList.remove("open");
+}
+function addGripPhotoChosen(input){
+  readAndResizeImage(input, 200, url => {
+    addGripImg = url;
+    document.getElementById("addgrip-photo-inner").innerHTML = `<img src="${url}" alt="Attachment photo">`;
+  });
+}
+function confirmAddGrip(){
+  const name = document.getElementById("addgrip-name").value.trim();
+  if(!name){ toast("Give the attachment a name"); return; }
+  if(!addGripImg){ toast("Add a photo first"); return; }
+  if(!state.customGrips) state.customGrips = [];
+  const id = "cg" + Date.now().toString(36);
+  state.customGrips.push({id, name, img: addGripImg});
+  const i = addGripTarget;
+  closeAddGrip();
+  if(i != null){ state.workout.exercises[i].grip = id; }
   persist(); render();
 }
 function pickArm(i, arm){
@@ -3099,9 +3184,7 @@ try{
   const t = localStorage.getItem("ironlog-theme");
   if(t && THEMES[t]) theme = t;
 }catch(e){}
-if ("serviceWorker" in navigator) {
-  try { navigator.serviceWorker.register("sw.js"); } catch (e) {}
-}
+if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch(e){} }
 applyTheme();
 restore();
 render();
