@@ -96,7 +96,7 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
   body{
-    background:var(--page);
+    background:var(--bg);
     color:var(--chalk);
     font-family:var(--body);
     font-size:16px;
@@ -118,7 +118,10 @@
     position:relative;
     box-shadow:var(--app-shadow);
     padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
   }
+  /* page background behind the app column also matches so insets never flash a different colour */
+  html{background:var(--bg);}
 
   /* ---------- Header (slim sticky top bar) ---------- */
   header{
@@ -820,11 +823,13 @@
     position:relative;
     background:#fff;
     height:240px;
+    padding-top:env(safe-area-inset-top);
+    box-sizing:content-box;
     display:flex; align-items:center; justify-content:center;
   }
   .detail-hero img{width:100%; height:100%; object-fit:contain;}
   .detail-back{
-    position:absolute; top:14px; left:14px;
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); left:14px;
     background:rgba(20,20,24,.62);
     color:#fff; border:none;
     width:42px; height:42px;
@@ -834,7 +839,7 @@
     display:flex; align-items:center; justify-content:center;
   }
   .detail-menu{
-    position:absolute; top:14px; right:14px;
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px;
     background:rgba(20,20,24,.62);
     color:#fff; border:none;
     width:42px; height:42px;
@@ -1060,6 +1065,66 @@
     border-top:1px solid var(--line);
   }
   .sheet .group-btn{margin-bottom:8px;}
+
+  /* ---------- History select / delete ---------- */
+  .hist-top{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; margin-bottom:14px;
+  }
+  .hist-select-btn{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:var(--chalk);
+    font-family:var(--display);
+    font-size:13px; font-weight:600;
+    letter-spacing:.05em; text-transform:uppercase;
+    padding:9px 18px;
+    flex:0 0 auto;
+    margin-top:2px;
+  }
+  .hist-delete-bar{
+    width:100%;
+    background:var(--c-chest);
+    color:#fff; border:none;
+    border-radius:14px;
+    font-family:var(--display);
+    font-size:15px; font-weight:700;
+    letter-spacing:.04em;
+    padding:14px;
+    margin-bottom:16px;
+  }
+  .hist-delete-bar.disabled{
+    background:var(--surface-2);
+    color:var(--muted);
+    pointer-events:none;
+  }
+  .hist-card-sel{cursor:pointer; transition:border-color .15s, background .15s;}
+  .hist-card-sel.sel-on{border-color:var(--accent); background:var(--surface);}
+  .hist-check{
+    width:24px; height:24px; flex:0 0 auto;
+    border-radius:50%;
+    border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--on-accent);
+    font-size:14px; font-weight:700;
+    margin-right:2px;
+  }
+  .hist-check.on{background:var(--accent); border-color:var(--accent);}
+
+  /* ---------- Cancel workout ---------- */
+  .btn-cancel-workout{
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--c-chest);
+    font-family:var(--display);
+    font-size:14px; font-weight:600;
+    letter-spacing:.04em;
+    padding:12px;
+    margin-top:2px;
+  }
+  .btn-cancel-workout:active{opacity:.6;}
 
   /* ---------- Bottom tab bar (floating pill) ---------- */
   nav{
@@ -2051,6 +2116,8 @@ function toggleGroup(scope, g){
 function switchTab(tab){
   state.tab = tab;
   state.renaming = false;
+  state.histSelect = false;
+  state.histSelected = {};
   for(const t of ["today","machines","history"]){
     document.getElementById("tab-"+t).classList.toggle("active", t===tab);
   }
@@ -2217,8 +2284,21 @@ function renderToday(){
     <div class="workout-actions">
       <button class="btn-secondary" onclick="openPicker(false)">+ Add exercise</button>
       ${w.exercises.some(e=>e.sets.length) ? `<button class="btn-secondary btn-finish" style="border:none" onclick="finishWorkout()">Finish workout</button>` : ""}
+      <button class="btn-cancel-workout" onclick="cancelWorkout()">Cancel workout</button>
     </div>`;
   return html;
+}
+function cancelWorkout(){
+  askConfirm(
+    "Cancel this workout?",
+    "Everything logged in this session will be discarded. This can't be undone.",
+    "Discard",
+    () => {
+      state.workout = null;
+      persist(); render();
+      toast("Workout cancelled");
+    }
+  );
 }
 
 function renderMachines(){
@@ -2297,10 +2377,20 @@ function renderHistory(){
         <p>Finished workouts will appear here so you can track your progress.</p>
       </div>`;
   }
+  const selMode = !!state.histSelect;
+  const selCount = selMode ? Object.keys(state.histSelected || {}).length : 0;
   let html = `
-    <div class="view-title">History</div>
-    <div class="view-sub">${state.history.length} session${state.history.length>1?"s":""} logged</div>`;
-  state.history.slice().reverse().forEach((w) => {
+    <div class="hist-top">
+      <div>
+        <div class="view-title">History</div>
+        <div class="view-sub">${selMode ? (selCount ? selCount + " selected" : "Select workouts to delete") : state.history.length + " session" + (state.history.length>1?"s":"") + " logged"}</div>
+      </div>
+      <button class="hist-select-btn" onclick="toggleHistSelect()">${selMode ? "Done" : "Select"}</button>
+    </div>
+    ${selMode ? `<button class="hist-delete-bar ${selCount?"":"disabled"}" onclick="${selCount?"deleteSelectedHistory()":""}">Delete ${selCount||""} workout${selCount===1?"":"s"}</button>` : ""}`;
+  state.history.slice().reverse().forEach((w, ri) => {
+    const wid = w.date;
+    const checked = selMode && state.histSelected && state.histSelected[wid];
     const nSets = w.exercises.reduce((a,e)=>a+e.sets.length,0);
     const wName = w.name && w.name.trim() ? w.name : "Workout";
     const body = w.exercises.map(e => {
@@ -2323,21 +2413,63 @@ function renderHistory(){
           </div>
         </div>`;
     }).join("");
-    html += `
-      <div class="card">
-        <button class="hist-head" onclick="this.parentElement.classList.toggle('hist-open')">
-          ${w.gym ? `<div class="thumb sm"><img src="${gymById(w.gym).img}" alt=""></div>` : ""}
-          <div class="hist-title">
-            <div class="hist-name">${esc(wName)}</div>
-            <div class="hist-date">${fmtDate(w.date)}${w.gym ? " · " + esc(gymById(w.gym).name) : ""}${w.bw ? " · " + w.bw + "kg" : ""}</div>
+    if(selMode){
+      html += `
+        <div class="card hist-card-sel ${checked?"sel-on":""}" onclick="toggleHistOne('${wid}')">
+          <div class="hist-head" style="cursor:pointer">
+            <span class="hist-check ${checked?"on":""}">${checked?"✓":""}</span>
+            ${w.gym ? `<div class="thumb sm"><img src="${gymById(w.gym).img}" alt=""></div>` : ""}
+            <div class="hist-title">
+              <div class="hist-name">${esc(wName)}</div>
+              <div class="hist-date">${fmtDate(w.date)}${w.gym ? " · " + esc(gymById(w.gym).name) : ""}${w.bw ? " · " + w.bw + "kg" : ""}</div>
+            </div>
+            <span class="hist-sum">${w.exercises.length} exercises · ${nSets} sets</span>
           </div>
-          <span class="hist-sum">${w.exercises.length} exercises · ${nSets} sets</span>
-          <span class="hist-caret">▾</span>
-        </button>
-        <div class="hist-body">${body}</div>
-      </div>`;
+        </div>`;
+    } else {
+      html += `
+        <div class="card">
+          <button class="hist-head" onclick="this.parentElement.classList.toggle('hist-open')">
+            ${w.gym ? `<div class="thumb sm"><img src="${gymById(w.gym).img}" alt=""></div>` : ""}
+            <div class="hist-title">
+              <div class="hist-name">${esc(wName)}</div>
+              <div class="hist-date">${fmtDate(w.date)}${w.gym ? " · " + esc(gymById(w.gym).name) : ""}${w.bw ? " · " + w.bw + "kg" : ""}</div>
+            </div>
+            <span class="hist-sum">${w.exercises.length} exercises · ${nSets} sets</span>
+            <span class="hist-caret">▾</span>
+          </button>
+          <div class="hist-body">${body}</div>
+        </div>`;
+    }
   });
   return html;
+}
+function toggleHistSelect(){
+  state.histSelect = !state.histSelect;
+  state.histSelected = {};
+  render();
+}
+function toggleHistOne(wid){
+  if(!state.histSelected) state.histSelected = {};
+  if(state.histSelected[wid]) delete state.histSelected[wid];
+  else state.histSelected[wid] = true;
+  render();
+}
+function deleteSelectedHistory(){
+  const ids = Object.keys(state.histSelected || {});
+  if(!ids.length) return;
+  askConfirm(
+    "Delete " + ids.length + " workout" + (ids.length===1?"":"s") + "?",
+    "This can't be undone.",
+    "Delete",
+    () => {
+      state.history = state.history.filter(w => !state.histSelected[w.date]);
+      state.histSelect = false;
+      state.histSelected = {};
+      persist(); render();
+      toast(ids.length + " workout" + (ids.length===1?"":"s") + " deleted");
+    }
+  );
 }
 
 /* ============ Workout actions ============ */
