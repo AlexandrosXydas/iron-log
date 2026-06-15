@@ -1,5 +1,5 @@
 /* IronLog service worker — caches the app so it works with no internet */
-const CACHE = "ironlog-cache-v5";
+const CACHE = "ironlog-cache-v6";
 const CORE = [
   "./",
   "./index.html",
