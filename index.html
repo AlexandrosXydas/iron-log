@@ -1919,6 +1919,21 @@ function cableExerciseList(){
   });
   return out;
 }
+const SEED_SMITH_EXERCISES = [
+  "Incline chest press",
+  "Flat chest press",
+  "Shoulder press",
+  "Shoulder shrugs"
+];
+function smithExerciseList(){
+  const seen = new Set();
+  const out = [];
+  SEED_SMITH_EXERCISES.concat(state.smithExercises || []).forEach(nm => {
+    const k = nm.toLowerCase();
+    if(!seen.has(k)){ seen.add(k); out.push(nm); }
+  });
+  return out;
+}
 
 /* ============ Free-weight exercise library (global) ============ */
 const EQUIPMENT = {
@@ -1994,6 +2009,7 @@ const SEED_MACHINES = [
   {id:"m10", name:"Nytram Lat Pulldown",      group:"back",    img:IMGS.zg_latpulldown, track:"pin-level", gym:"g1", stack:20, extra:true, attach:true},
   {id:"m11", name:"Strive Shoulder Press",    group:"shoulders", img:IMGS.zg_strive_shoulderpress, track:"plate", gym:"g1", positions:["Low","Middle","High"]},
   {id:"m12", name:"Dual Cable / Functional Trainer", group:"cables", img:IMGS.zg_dualcable, track:"pin-level", gym:"g1", stack:20, extra:true},
+  {id:"m15", name:"Nytram Smith Machine", group:"cables", img:IMGS.zg_dualcable, track:"plate", gym:"g1", smith:true},
   {id:"m13", name:"Pec Deck",                 group:"chest",   img:IMGS.zg_pecdeck,   track:"pin-level", gym:"g1", stack:17, extra:true},
   {id:"m14", name:"Tricep Extension",         group:"arms",    img:IMGS.zg_tricepext, track:"plate",     gym:"g1", unilateral:true}
 ];
@@ -2067,6 +2083,7 @@ let state = {
   machines: [],       // full editable machine library
   removedSeeds: [],   // built-in machines the user has deleted
   cableExercises: [], // custom cable exercise names the user has added
+  smithExercises: [], // custom Smith machine exercise names the user has added
   exercises: [],      // user-added global free-weight exercises {id, name, group, equipment}
   removedExercises: [], // seed exercise ids the user has deleted
   customGrips: [],    // user-added grips/attachments {id, name, img}
@@ -2079,7 +2096,7 @@ let machinesGym = null;        // which gym is open in the Machines tab
 
 function persist(){
   try{
-    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises, exercises:state.exercises, removedExercises:state.removedExercises, customGrips:state.customGrips}));
+    localStorage.setItem("ironlog-v1", JSON.stringify({workout:state.workout, history:state.history, machines:state.machines, gyms:state.gyms, removedSeeds:state.removedSeeds, cableExercises:state.cableExercises, smithExercises:state.smithExercises, exercises:state.exercises, removedExercises:state.removedExercises, customGrips:state.customGrips}));
   }catch(e){ /* storage unavailable — session-only */ }
 }
 function restore(){
@@ -2094,6 +2111,7 @@ function restore(){
       state.gyms = d.gyms || [];
       state.removedSeeds = d.removedSeeds || [];
       state.cableExercises = d.cableExercises || [];
+      state.smithExercises = d.smithExercises || [];
       state.exercises = d.exercises || [];
       state.removedExercises = d.removedExercises || [];
       state.customGrips = d.customGrips || [];
@@ -2135,7 +2153,7 @@ function restore(){
   }
   // Sync forward capability flags from seeds onto existing saved seed-machines.
   // (Newly added capabilities like attach/unilateral reach machines saved before they existed.)
-  const SYNC_FLAGS = ["attach", "unilateral", "extra", "positions", "stack"];
+  const SYNC_FLAGS = ["attach", "unilateral", "extra", "positions", "stack", "smith"];
   state.machines = state.machines.map(m => {
     const seed = SEED_MACHINES.find(s => s.id === m.id);
     if(!seed) return m;
@@ -2278,7 +2296,7 @@ function workoutBenches(){
   const gym = gid ? gymById(gid) : null;
   return gymBenches(gym);
 }
-function benchRow(i){
+function benchRow(i, label){
   const ex = state.workout.exercises[i];
   if(ex.bench !== undefined) return "";
   const benches = workoutBenches();
@@ -2290,7 +2308,7 @@ function benchRow(i){
     </button>`).join("");
   return `
     <div class="grip-block">
-      <div class="grip-label">Which bench? <span class="grip-req">required</span></div>
+      <div class="grip-label">${esc(label || "Which bench?")} <span class="grip-req">required</span></div>
       <div class="grip-grid">
         ${cells}
         <button class="grip-cell grip-none" onclick="pickBench(${i}, null)">
@@ -2583,20 +2601,22 @@ function renderToday(){
       noteHtml = `<button class="btn-note" onclick="toggleNote(${i})">+ Add a note</button>`;
     }
 
-    const isCable = m.group === "cables";
+    const isSmith = !!m.smith;
+    const isCable = m.group === "cables" && !isSmith;
     const hasAttach = !!m.attach;            // pin-loaded machine with selectable grip
-    const named = isCable && ex.exName && ex.exName.trim();
+    const named = (isCable || isSmith) && ex.exName && ex.exName.trim();
     const gripChosen = ex.grip !== undefined;
     const cableReady = isCable && named && gripChosen;     // cable: both picked → collapsed
     const attachReady = hasAttach && gripChosen;           // attach machine: grip picked
     // bench: only for flagged exercises, only when this gym actually has benches
     const benchList = workoutBenches();
-    const needsBench = !!m.needsBench && !isCable && !hasAttach && benchList.length > 0;
+    const needsBench = ((!!m.needsBench && !isCable && !hasAttach) || (isSmith && named)) && benchList.length > 0;
     const benchChosen = ex.bench !== undefined;
     const benchReady = needsBench && benchChosen;
+    const smithReady = isSmith && named && (!benchList.length || benchChosen); // smith: exercise + bench → collapsed
     // barbell: for barbell exercises, only when this gym has barbells defined
     const barbellList = workoutBarbells();
-    const needsBarbell = !!m.needsBarbell && !isCable && !hasAttach && barbellList.length > 0;
+    const needsBarbell = !!m.needsBarbell && !isCable && !isSmith && !hasAttach && barbellList.length > 0;
     const barbellChosen = ex.barbell !== undefined;
     const barbellReady = needsBarbell && barbellChosen;
 
@@ -2608,6 +2628,12 @@ function renderToday(){
           <div class="ex-name">${title}</div>
           <div class="ex-sub">${named ? esc(m.name) : plateChip(m.group)}</div>
           ${cableReady ? `<div class="setup-chips">${gripChip(ex.grip)}<button class="setup-change" onclick="resetCableSetup(${i})">change</button></div>` : ""}`;
+    } else if(isSmith){
+      const title = named ? esc(ex.exName) : esc(m.name);
+      headInfo = `
+          <div class="ex-name">${title}</div>
+          <div class="ex-sub">${named ? esc(m.name) : plateChip(m.group)}</div>
+          ${smithReady && benchChosen ? `<div class="setup-chips">${benchChip(ex.bench)}<button class="setup-change" onclick="resetBench(${i})">change</button></div>` : ""}`;
     } else {
       headInfo = `
           <div class="ex-name">${esc(m.name)}</div>
@@ -2617,16 +2643,18 @@ function renderToday(){
           ${barbellReady ? `<div class="setup-chips">${barbellChip(ex.barbell)}<button class="setup-change" onclick="resetBarbell(${i})">change</button></div>` : ""}`;
     }
 
-    // ----- Step 1: pick exercise (only if cable & not named) -----
+    // ----- Step 1: pick exercise (cable or smith, while not named) -----
     let cableNameField = "";
-    if(isCable && !named){
+    if((isCable || isSmith) && !named){
+      const list = isSmith ? smithExerciseList() : cableExerciseList();
+      const promptLabel = isSmith ? "Step 1 · Which Smith machine exercise?" : "Step 1 · Which cable exercise?";
       cableNameField = `
         <div class="exname-wrap">
-          <label class="exname-label">Step 1 · Which cable exercise?</label>
+          <label class="exname-label">${promptLabel}</label>
           <div class="exselect-shell">
             <select class="exname-select" onchange="onExSelect(${i}, this.value)">
               <option value="" selected disabled>Select exercise…</option>
-              ${cableExerciseList().map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join("")}
+              ${list.map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join("")}
               <option value="__add__">+ Add new…</option>
             </select>
             <span class="exselect-caret">▾</span>
@@ -2642,10 +2670,10 @@ function renderToday(){
       gripStep = gripRow(m, i);
     }
 
-    // ----- Bench step: flagged exercise at a gym that has benches, until one is picked -----
+    // ----- Bench step: flagged exercise (or Smith, after exercise named) at a gym with benches -----
     let benchStep = "";
     if(needsBench && !benchChosen){
-      benchStep = benchRow(i);
+      benchStep = benchRow(i, isSmith ? "Step 2 · Which bench?" : "Which bench?");
     }
 
     // ----- Barbell step: barbell exercise at a gym with barbells, after bench resolved -----
@@ -2657,6 +2685,7 @@ function renderToday(){
     // ----- Set entry: gated behind whichever setup steps apply -----
     let showSets;
     if(isCable) showSets = cableReady;
+    else if(isSmith) showSets = smithReady;
     else if(hasAttach) showSets = attachReady;
     else {
       showSets = true;
@@ -2671,7 +2700,7 @@ function renderToday(){
         <div class="ex-info">
           ${headInfo}
         </div>
-        ${(named && !cableReady) ? `<button class="ex-remove ex-edit-name" onclick="clearExName(${i})" aria-label="Change exercise">✎</button>` : ""}
+        ${(named && !cableReady && !smithReady) ? `<button class="ex-remove ex-edit-name" onclick="clearExName(${i})" aria-label="Change exercise">✎</button>` : ""}
         <button class="ex-remove" onclick="removeExercise(${i})" aria-label="Remove ${esc(m.name)}">✕</button>
       </div>
       ${cableNameField}
@@ -3260,7 +3289,7 @@ function resetCableSetup(i){
 function addSet(i){
   const ex = state.workout.exercises[i];
   const m = byId(ex.mid);
-  if((m.group === "cables" || m.attach) && ex.grip === undefined){
+  if(((m.group === "cables" && !m.smith) || m.attach) && ex.grip === undefined){
     toast("Pick a grip first");
     return;
   }
@@ -3349,17 +3378,31 @@ function closeAddExercise(){
 function confirmAddExercise(){
   const v = document.getElementById("addex-input").value.trim();
   if(!v) return;
-  if(!state.cableExercises) state.cableExercises = [];
-  // add to saved list if new (case-insensitive)
-  const exists = cableExerciseList().some(nm => nm.toLowerCase() === v.toLowerCase());
-  if(!exists) state.cableExercises.push(v);
   const i = addExTarget;
+  // route the new name to the right saved list based on the target machine
+  let isSmith = false;
+  if(i != null && state.workout && state.workout.exercises[i]){
+    const tm = byId(state.workout.exercises[i].mid);
+    isSmith = !!(tm && tm.smith);
+  }
+  if(isSmith){
+    if(!state.smithExercises) state.smithExercises = [];
+    const exists = smithExerciseList().some(nm => nm.toLowerCase() === v.toLowerCase());
+    if(!exists) state.smithExercises.push(v);
+  } else {
+    if(!state.cableExercises) state.cableExercises = [];
+    const exists = cableExerciseList().some(nm => nm.toLowerCase() === v.toLowerCase());
+    if(!exists) state.cableExercises.push(v);
+  }
   closeAddExercise();
   if(i != null) saveExName(i, v);
   else persist();
 }
 function clearExName(i){
-  state.workout.exercises[i].exName = "";
+  const ex = state.workout.exercises[i];
+  ex.exName = "";
+  const m = byId(ex.mid);
+  if(m && m.smith){ ex.bench = undefined; delete ex.bench; }
   persist(); render();
 }
 function removeExercise(i){
@@ -3830,7 +3873,7 @@ function renderMachineDetail(){
         <div class="ex-filter-row">
           ${exNames.map(nm => `<button class="ex-filter ${nm===detailExName?"on":""}" onclick="setDetailEx(${JSON.stringify(nm).replace(/"/g,'&quot;')})">${esc(nm)}</button>`).join("")}
         </div>` : ""}
-      ${isCable && !exNames.length ? `<div class="detail-empty" style="margin-bottom:22px">Log a cable exercise on this machine and its stats will appear here, split by exercise.</div>` : ""}
+      ${isCable && !exNames.length ? `<div class="detail-empty" style="margin-bottom:22px">Log an exercise on this machine and its stats will appear here, split by exercise.</div>` : ""}
 
       <div class="detail-section-label">Your numbers</div>
       <div class="stat-grid">
