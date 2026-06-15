@@ -1896,7 +1896,7 @@ const GROUPS = {
   legs:      {label:"Legs",      color:"var(--c-legs)"},
   shoulders: {label:"Shoulders", color:"var(--c-shoulders)"},
   arms:      {label:"Arms",      color:"var(--c-arms)"},
-  cables:    {label:"Cables",    color:"var(--c-cables)"},
+  cables:    {label:"Cables and other machines",    color:"var(--c-cables)"},
   cardio:    {label:"Cardio",    color:"var(--c-cardio)"}
 };
 const GROUP_ORDER = ["chest","back","legs","shoulders","arms","cables","cardio"];
@@ -2256,6 +2256,7 @@ function attachRow(m, i){
     </div>`;
 }
 function gripRow(m, i){
+  if(m.smith) return "";
   if(m.group !== "cables" && !m.attach) return "";
   const ex = state.workout.exercises[i];
   // only show the grid while no grip has been chosen yet
