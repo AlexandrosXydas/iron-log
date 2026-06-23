@@ -1448,19 +1448,32 @@
   :root{
     --accent-grad:linear-gradient(135deg,#FFFDF4,#D6D1C0);
     --accent-glow:rgba(236,233,225,.20);
-    --bg-grad:linear-gradient(180deg,#1B1E24 0%, #16181C 260px);
+    --bg-grad:
+      radial-gradient(120% 70% at 100% -8%, rgba(63,166,106,.10), transparent 60%),
+      radial-gradient(120% 80% at -10% 0%, rgba(63,125,216,.08), transparent 55%),
+      linear-gradient(180deg,#1B1E24 0%, #16181C 320px);
+    --logo-g1:#3FA66A; --logo-g2:#2B6FC4;
+    --logo-mark-fg:#F4F1E8;
   }
   body[data-theme="ember"]{
     --accent-grad:linear-gradient(135deg,#FF8A4D,#E8531F);
     --accent-glow:rgba(242,104,47,.35);
-    --bg-grad:linear-gradient(180deg,#151B28 0%, #10141B 260px);
+    --bg-grad:
+      radial-gradient(120% 70% at 100% -8%, rgba(242,104,47,.14), transparent 60%),
+      linear-gradient(180deg,#151B28 0%, #10141B 320px);
+    --logo-g1:#FF8A4D; --logo-g2:#E8531F;
+    --logo-mark-fg:#1A0F08;
   }
   body[data-theme="chalk"]{
     --accent-grad:linear-gradient(135deg,#2C2F36,#0F1115);
     --accent-glow:rgba(27,29,33,.22);
-    --bg-grad:linear-gradient(180deg,#FBFAF6 0%, #F2F1EC 260px);
+    --bg-grad:
+      radial-gradient(120% 70% at 100% -8%, rgba(46,142,85,.10), transparent 60%),
+      linear-gradient(180deg,#FBFAF6 0%, #F2F1EC 320px);
+    --logo-g1:#2E8E55; --logo-g2:#2F66BD;
+    --logo-mark-fg:#FBFAF6;
   }
-  .app{background:var(--bg-grad);}
+  .app{background:var(--bg-grad); background-attachment:fixed;}
 
   @keyframes dynUp{
     from{opacity:0; transform:translateY(14px);}
@@ -1523,13 +1536,55 @@
     0%{background-position:130% 0;}
     100%{background-position:-130% 0;}
   }
-  .logo-mark{transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
-  header:hover .logo-mark{transform:rotate(-10deg) scale(1.08);}
+  .logo-mark{transition:transform .4s cubic-bezier(.34,1.56,.64,1); filter:drop-shadow(0 4px 10px var(--accent-glow));}
+  header:hover .logo-mark{transform:rotate(-8deg) scale(1.1);}
+
+  /* ----- revamp v2: glass, spring, glow ----- */
+  header, nav{
+    backdrop-filter:saturate(140%) blur(18px);
+    -webkit-backdrop-filter:saturate(140%) blur(18px);
+  }
+  /* springier page entrance */
+  main.anim > *{animation:dynUp .5s cubic-bezier(.16,1,.3,1) backwards;}
+
+  /* primary button: sheen sweep + lift */
+  .btn-primary{position:relative; overflow:hidden;}
+  .btn-primary::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+    transform:translateX(-120%); transition:transform .6s ease;
+  }
+  .btn-primary:hover::after{transform:translateX(120%);}
+  .btn-primary{box-shadow:0 10px 30px var(--accent-glow);}
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 16px 40px var(--accent-glow);}
+  .btn-primary:active{transform:scale(.97) translateY(0);}
+
+  /* active nav: soft glowing pill that scales in */
+  nav button.active{
+    box-shadow:0 6px 20px var(--accent-glow);
+    animation:navPop .32s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes navPop{from{transform:scale(.82);}to{transform:scale(1);}}
+  nav button svg{transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+  nav button.active svg{transform:translateY(-1px) scale(1.08);}
+
+  /* cards: smoother hover float */
+  .card:hover{transform:translateY(-3px);}
+
+  /* empty-state emblem gentle bob */
+  .empty .bar{animation:bob 3.2s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+
+  /* thumbnails ease on press inside pick rows */
+  .pick-row:active .thumb, .gym-tile:active .thumb{transform:scale(.94); transition:transform .12s;}
+
 
   @media (prefers-reduced-motion: reduce){
-    main.anim > *, .sheet, .group-list, .hist-open .hist-body, .wordmark{animation:none !important;}
+    main.anim > *, .sheet, .group-list, .hist-open .hist-body, .wordmark,
+    .empty .bar, nav button.active{animation:none !important;}
     .card, .logo-mark, .btn-primary, .btn-secondary, .btn-addset,
-    .group-btn, .pick-row, .theme-row, .gym-row, nav button, .gp, .plate{transition:none !important;}
+    .group-btn, .pick-row, .theme-row, .gym-row, nav button, nav button svg, .gp, .plate{transition:none !important;}
+    .btn-primary::after{display:none;}
   }
 </style>
 </head>
@@ -1537,12 +1592,20 @@
 <div class="app">
 
   <header>
-    <svg class="logo-mark" width="46" height="22" viewBox="0 0 48 24" aria-hidden="true">
-      <rect x="2"    y="10.5" width="44"  height="3"  rx="1.5"  fill="var(--logo-bar)"/>
-      <rect x="8"    y="3"    width="4"   height="18" rx="2"    fill="#D9484A"/>
-      <rect x="13"   y="5.5"  width="3.5" height="13" rx="1.75" fill="#3F7DD8"/>
-      <rect x="36"   y="3"    width="4"   height="18" rx="2"    fill="#3FA66A"/>
-      <rect x="31.5" y="5.5"  width="3.5" height="13" rx="1.75" fill="#E3B23C"/>
+    <svg class="logo-mark" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+      <defs>
+        <linearGradient id="ilg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="var(--logo-g1)"/>
+          <stop offset="1" stop-color="var(--logo-g2)"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="36" height="36" rx="11" fill="url(#ilg)"/>
+      <!-- barbell: end caps + bar, plus a forward 'motion' streak -->
+      <rect x="9"  y="13" width="4.2" height="14" rx="2.1" fill="var(--logo-mark-fg)"/>
+      <rect x="14.4" y="15.5" width="3" height="9" rx="1.5" fill="var(--logo-mark-fg)" opacity=".7"/>
+      <rect x="26.8" y="13" width="4.2" height="14" rx="2.1" fill="var(--logo-mark-fg)"/>
+      <rect x="22.6" y="15.5" width="3" height="9" rx="1.5" fill="var(--logo-mark-fg)" opacity=".7"/>
+      <rect x="17" y="18.4" width="6" height="3.2" rx="1.6" fill="var(--logo-mark-fg)"/>
     </svg>
     <span class="wordmark">IronLog</span>
     <button class="btn-settings" onclick="openSettings()" aria-label="Settings">
